@@ -1,0 +1,105 @@
+sometimes the JS engines will refuse to conform to a specification-dictated change because it would break that web content.
+often TC39 will backtrack and simply choose to conform the specification to the reality of the web. For example, TC39 planned to add a contains(..) method for Arrays, but it was found that this name conflicted with old JS frameworks still in use on some sites, so they changed the name to a non-conflicting includes(..). The same happened with a comedic/tragic JS community crisis dubbed "smooshgate," where the planned flatten(..) method was eventually renamed flat(..).
+
+Not All (Web) JS...
+So alert(..) and console.log(..) are not defined by JS. But they look like JS. They are functions and object methods and they obey JS syntax rules. The behaviors behind them are controlled by the environment running the JS engine, but on the surface they definitely have to abide by JS to be able to play in the JS playground.
+
+there's many quirks that may act as "gotchas" if you're treating the console as a pure JS environment.
+Don't trust what behavior you see in a developer console as representing exact to-the-letter JS semantics; for that, read the specification. Instead, think of the console as a "JS-friendly" environment. 
+
+The term "paradigm" in programming language context refers to a broad (almost universal) mindset and approach to structuring code. Within a paradigm, there are myriad variations of style and form that distinguish programs, including countless different libraries and frameworks that leave their unique signature on any given code.
+
+Typical paradigm-level code categories include procedural, object-oriented (OO/classes), and functional (FP):
+
+Procedural style organizes code in a top-down, linear progression through a pre-determined set of operations, usually collected together in related units called procedures.
+
+OO style organizes code by collecting logic and data together into units called classes.
+
+FP style organizes code into functions (pure computations as opposed to procedures), and the adaptations of those functions as values.
+
+JavaScript is most definitely a "multi-paradigm language". You can write procedural, class-oriented, or FP-style code, and you can make those decisions on a line-by-line basis instead of being forced into an all-or-nothing choice.
+
+"Backwards compatibility" means that once something is accepted as valid JS, there will not be a future change to the language that causes that code to become invalid JS. Code written in 1995—however primitive or limited it may have been!—should still work today. As TC39 members often proclaim, "we don't break the web!"
+
+Being forwards-compatible means that including a new addition to the language in a program would not cause that program to break if it were run in an older JS engine. "JS is not forwards-compatible", despite many wishing such, and even incorrectly believing the myth that it is.
+
+If you run a program that uses an ES2019 feature in an engine from 2016, you're very likely to see the program break and crash.If the feature is a new syntax, the program will in general completely fail to compile and run, usually throwing a syntax error. If the feature is an API (such as ES6's Object.is(..)), the program may run up to a point but then throw a runtime exception and stop once it encounters the reference to the unknown API.
+
+For new and incompatible syntax, the solution is "transpiling". Transpiling is a contrived and community-invented term to describe using a tool to convert the source code of a program from one form to another (but still as textual source code). Typically, forwards-compatibility problems related to syntax are solved by using a transpiler (the most common one being "Babel" (https://babeljs.io)) to convert from that newer JS syntax version to an equivalent older syntax.
+if (something) {
+    let x = 3;
+    console.log(x);
+}
+else {
+    let x = 4;
+    console.log(x);
+}
+Babel outputs :: 
+var x$0, x$1;
+if (something) {
+    x$0 = 3;
+    console.log(x$0);
+}
+else {
+    x$1 = 4;
+    console.log(x$1);
+}
+If the forwards-compatibility issue is not related to new syntax, but rather to a missing API method that was only recently added, the most common solution is to provide a definition for that missing API method that stands in and acts as if the older environment had already had it natively defined. This pattern is called a "polyfill" (aka "shim").
+This code uses an ES2019 feature, the finally(..) method on the promise prototype. If this code were used in a pre-ES2019 environment, the finally(..) method would not exist, and an error would occur.collection of polyfills/shims in ES-Shim
+if (!Promise.prototype.finally) {
+    Promise.prototype.finally = function f(fn){
+        return this.then(
+            function t(v){
+                return Promise.resolve( fn() )
+                    .then(function t(){
+                        return v;
+                    });
+            },
+            function c(e){
+                return Promise.resolve( fn() )
+                    .then(function t(){
+                        throw e;
+                    });
+            }
+        );
+    };
+}
+Transpilation and polyfilling are two highly effective techniques for addressing that gap between code that uses the latest stable features in the language and the old environments a site or application needs to still support. Since JS isn't going to stop improving, the gap will never go away. Both techniques should be embraced as a standard part of every JS project's production chain going forward.
+
+Interpreted and compiled
+The real reason it matters to have a clear picture on whether JS is interpreted or compiled relates to the nature of how errors are handled.
+In scripted or interpreted languages, an error on line 5 of a program won't be discovered until lines 1 through 4 have already executed. Notably, the error on line 5 might be due to a runtime condition, such as some variable or value having an unsuitable value for an operation, or it may be due to a malformed statement/command on that line. Depending on context, deferring error handling to the line the error occurs on may be a desirable or undesirable effect.
+
+JS is a parsed language, but is it compiled?
+So what do these nitty-gritty details boil down to? Step back and consider the entire flow of a JS source program:
+
+After a program leaves a developer's editor, it gets transpiled by Babel, then packed by Webpack (and perhaps half a dozen other build processes), then it gets delivered in that very different form to a JS engine.
+
+The JS engine parses the code to an AST.
+
+Then the engine converts that AST to a kind-of byte code, a binary intermediate representation (IR), which is then refined/converted even further by the optimizing JIT compiler.
+
+Finally, the JS VM executes the program.
+JS is a compiled language.
+
+// only whitespace and comments are allowed
+// before the use-strict pragma
+"use strict";
+// the rest of the file runs in strict mode
+
+function someOperations() {
+    // whitespace and comments are fine here
+    "use strict";
+
+    // all this code will run in strict mode
+}
+
+Something to be aware of is that even a stray ; all by itself appearing before the strict mode pragma will render the pragma useless; no errors are thrown because it's valid JS to have a string literal expression in a statement position, but it also will silently not turn on strict mode!
+
+Interestingly, if a file has strict mode turned on, the function-level strict mode pragmas are disallowed. So you have to pick one or the other.
+
+JS is an implementation of the ECMAScript standard (version ES2019 as of this writing), which is guided by the TC39 committee and hosted by ECMA. It runs in browsers and other JS environments such as Node.js.
+
+JS is a multi-paradigm language, meaning the syntax and capabilities allow a developer to mix and match (and bend and reshape!) concepts from various major paradigms, such as procedural, object-oriented (OO/classes), and functional (FP).
+
+JS is a compiled language, meaning the tools (including the JS engine) process and verify a program (reporting any errors!) before it executes.
